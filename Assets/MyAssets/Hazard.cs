@@ -12,18 +12,33 @@ public class Hazard : MonoBehaviour
     [SerializeField] float warnTime = 0.7f;
     [SerializeField] float strikeTime = 0.4f;
     [SerializeField] GameObject warning;
-
+    [SerializeField] Transform block;        // the red block that slams down
+    [SerializeField] float dropDistance = 3f;
     IEnumerator Start()
     {
         if (restTime <= 0f) yield break;
         Collider zone = GetComponent<Collider>();
+
+        Vector3 up = block.localPosition;
+        Vector3 down = up - Vector3.up * dropDistance;
+
         while (true)
         {
             zone.enabled = false;
+            block.localPosition = up;
             yield return new WaitForSeconds(restTime);
+
             warning.SetActive(true);
             yield return new WaitForSeconds(warnTime);
             warning.SetActive(false);
+
+            // slam down fast
+            for (float t = 0f; t < 0.1f; t += Time.deltaTime)
+            {
+                block.localPosition = Vector3.Lerp(up, down, t / 0.1f);
+                yield return null;
+            }
+            block.localPosition = down;
             zone.enabled = true;
             yield return new WaitForSeconds(strikeTime);
         }
