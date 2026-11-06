@@ -3,7 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// Lecture 06's GameManager, with lives, a respawn and a way to lose.
+// Lecture 06's GameManager, with lives, a respawn, a way to lose and a level timer.
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
@@ -18,13 +18,56 @@ public class GameManager : MonoBehaviour
     [SerializeField] TMP_Text livesText;
     [SerializeField] GameObject winPanel;
     [SerializeField] GameObject losePanel;
+    [SerializeField] TMP_Text winTitle;   // the "Congratulations! You Win" text in WinPanel
+
+    [Header("Timer")]
+    [SerializeField] float timeLimit = 60f;   // seconds; set 0 for no timer
+    [SerializeField] TMP_Text timerText;
+
     int score;
+    float timeLeft;
+    bool finished;
 
     void Awake() => Instance = this;
-    void Start() => UpdateUI();
+
+    void Start()
+    {
+        timeLeft = timeLimit;
+        UpdateUI();
+        UpdateTimerUI();
+    }
+
+    void Update()
+    {
+        if (finished || timeLimit <= 0f) return;
+
+        timeLeft -= Time.deltaTime;
+        if (timeLeft <= 0f)
+        {
+            timeLeft = 0f;
+            UpdateTimerUI();
+            Lose();   // time ran out
+            return;
+        }
+        UpdateTimerUI();
+    }
+
+    void UpdateTimerUI()
+    {
+        if (timerText == null) return;
+
+        if (timeLimit <= 0f) { timerText.text = ""; return; }
+
+        int minutes = Mathf.FloorToInt(timeLeft / 60f);
+        int seconds = Mathf.FloorToInt(timeLeft % 60f);
+        timerText.text = $"Time: {minutes:00}:{seconds:00}";
+        timerText.color = timeLeft <= 10f ? Color.red : Color.white;   // warning in the last 10 seconds
+    }
 
     public void AddScore(int amount)
     {
+        if (finished) return;
+
         score += amount;
         UpdateUI();
         if (score >= targetScore) Win();
@@ -38,6 +81,8 @@ public class GameManager : MonoBehaviour
 
     public void PlayerDied()
     {
+        if (finished) return;
+
         lives--;
         UpdateUI();
         if (lives <= 0) Lose();
@@ -53,9 +98,24 @@ public class GameManager : MonoBehaviour
         player.Restore(spawnProtection);
     }
 
-   
+    void Win()
+    {
+        if (finished) return;
+        finished = true;
+
+        bool lastLevel = SceneManager.GetActiveScene().buildIndex == SceneManager.sceneCountInBuildSettings - 1;
+        if (lastLevel && winTitle != null)
+            winTitle.text = "You finished the game!";
+
+        winPanel.SetActive(true);
+        Time.timeScale = 0f;
+    }
+
     void Lose()
     {
+        if (finished) return;
+        finished = true;
+
         losePanel.SetActive(true);
         Time.timeScale = 0f;
     }
@@ -64,17 +124,6 @@ public class GameManager : MonoBehaviour
     {
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-    }
-    [SerializeField] TMP_Text winTitle;   // the "Congratulations! You Win" text in WinPanel
-
-    void Win()
-    {
-        bool lastLevel = SceneManager.GetActiveScene().buildIndex == SceneManager.sceneCountInBuildSettings - 1;
-        if (lastLevel && winTitle != null)
-            winTitle.text = "You finished the game!";
-
-        winPanel.SetActive(true);
-        Time.timeScale = 0f;
     }
 
     public void NextLevel()
