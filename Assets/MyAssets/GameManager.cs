@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
-
+    [SerializeField] int maxLives = 5;
     [SerializeField] int targetScore = 10;
     [SerializeField] int lives = 3;
     [SerializeField] float respawnDelay = 0.6f;
@@ -23,7 +23,10 @@ public class GameManager : MonoBehaviour
     [Header("Timer")]
     [SerializeField] float timeLimit = 60f;   // seconds; set 0 for no timer
     [SerializeField] TMP_Text timerText;
-
+    [Header("Heart (spawns when 1 life is left)")]
+    [SerializeField] GameObject heartPrefab;
+    [SerializeField] Transform[] heartSpawnPoints;
+    GameObject heart;
     int score;
     float timeLeft;
     bool finished;
@@ -78,7 +81,22 @@ public class GameManager : MonoBehaviour
         scoreText.text = $"Score: {score} / {targetScore}";
         livesText.text = $"Lives: {lives}   Health: {Mathf.Max(player.Current, 0)} / {player.Max}";
     }
+    void CheckHeart()
+    {
+        if (lives != 1 || heart != null) return;   // only at 1 life, and only one heart at a time
+        if (heartPrefab == null || heartSpawnPoints.Length == 0) return;
 
+        Transform p = heartSpawnPoints[Random.Range(0, heartSpawnPoints.Length)];
+        heart = Instantiate(heartPrefab, p.position, Quaternion.identity);
+    }
+    public bool AddLife(int amount)
+    {
+        if (finished || lives >= maxLives) return false;
+
+        lives = Mathf.Min(lives + amount, maxLives);
+        UpdateUI();
+        return true;
+    }
     public void PlayerDied()
     {
         if (finished) return;
