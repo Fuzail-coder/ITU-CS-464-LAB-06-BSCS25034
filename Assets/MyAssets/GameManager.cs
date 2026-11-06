@@ -53,12 +53,7 @@ public class GameManager : MonoBehaviour
         player.Restore(spawnProtection);
     }
 
-    void Win()
-    {
-        winPanel.SetActive(true);
-        Time.timeScale = 0f;
-    }
-
+   
     void Lose()
     {
         losePanel.SetActive(true);
@@ -69,5 +64,27 @@ public class GameManager : MonoBehaviour
     {
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+    [SerializeField] TMP_Text winTitle;   // the "Congratulations! You Win" text in WinPanel
+
+    void Win()
+    {
+        bool lastLevel = SceneManager.GetActiveScene().buildIndex == SceneManager.sceneCountInBuildSettings - 1;
+        if (lastLevel && winTitle != null)
+            winTitle.text = "You finished the game!";
+
+        winPanel.SetActive(true);
+        Time.timeScale = 0f;
+    }
+
+    public void NextLevel()
+    {
+        Time.timeScale = 1f;
+        int next = SceneManager.GetActiveScene().buildIndex + 1;
+
+        if (next < SceneManager.sceneCountInBuildSettings)
+            SceneManager.LoadScene(next);
+        else
+            SceneManager.LoadScene(0);   // after the final screen, back to Level 1
     }
 }
